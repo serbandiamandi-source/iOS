@@ -47,6 +47,7 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER=${{ secrets.BUNDLE_ID }} \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=YES
+            PROVISIONING_PROFILE_SPECIFIER="Barometer App Store Profile"
 
       - name: Create export options
         run: |
