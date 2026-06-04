@@ -36,7 +36,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/cf361b6c-f7a7-4c88-9fc6-6364e7927102.mobileprovision
 
           echo "Installed signing identities:"
@@ -65,13 +64,10 @@ jobs:
           <dict>
             <key>method</key>
             <string>app-store-connect</string>
-
             <key>signingStyle</key>
             <string>manual</string>
-
             <key>teamID</key>
             <string>DH52HKR3ND</string>
-
             <key>provisioningProfiles</key>
             <dict>
               <key>com.serban.barometer</key>
@@ -93,3 +89,19 @@ jobs:
         with:
           name: BarometerPressureApp-IPA
           path: build/export/*.ipa
+
+      - name: Upload IPA to App Store Connect
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          mkdir -p private_keys
+
+          echo "$APPSTORE_PRIVATE_KEY" > private_keys/AuthKey_$APPSTORE_KEY_ID.p8
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file build/export/*.ipa \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
