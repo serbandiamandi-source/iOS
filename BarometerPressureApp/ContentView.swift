@@ -6,7 +6,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Barometric Pressure")
+            Text("Presiune atmosferica")
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
