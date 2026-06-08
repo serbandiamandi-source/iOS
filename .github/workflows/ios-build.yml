@@ -25,6 +25,14 @@ jobs:
           rm -rf build/DerivedData
           mkdir -p build/logs
 
+      - name: Reset checkout and clean Xcode caches
+        run: |
+          git reset --hard HEAD
+          git clean -ffdx
+          rm -rf ~/Library/Developer/Xcode/DerivedData/BarometerPressureApp-*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          rm -rf build/DerivedData
+
       - name: Install certificate and provisioning profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -60,7 +68,12 @@ jobs:
 
       - name: Archive app
         run: |
-          set -o pipefail
+          xcodebuild clean \
+            -project BarometerPressureApp.xcodeproj \
+            -scheme BarometerPressureApp \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/DerivedData
 
           xcodebuild archive \
             -project BarometerPressureApp.xcodeproj \
