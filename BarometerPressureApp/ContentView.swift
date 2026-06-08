@@ -1,4 +1,3 @@
-import Charts
 import CoreLocation
 import CoreMotion
 import SwiftUI
@@ -81,38 +80,121 @@ struct PressureTrendView: View {
         NavigationStack {
             Group {
                 if samples.isEmpty {
-                    ContentUnavailableView(
-                        "Nu exista date inca",
-                        systemImage: "chart.xyaxis.line",
-                        description: Text("Aplicatia salveaza cate un esantion de presiune la cel putin 1 ora, timp de maximum 7 zile.")
-                    )
-                } else {
-                    Chart(samples) { sample in
-                        LineMark(
-                            x: .value("Ora", sample.date),
-                            y: .value("Presiune", sample.pressureMillimetersOfMercury)
-                        )
+                    VStack(spacing: 12) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
 
-                        PointMark(
-                            x: .value("Ora", sample.date),
-                            y: .value("Presiune", sample.pressureMillimetersOfMercury)
-                        )
+                        Text("Nu exista date inca")
+                            .font(.headline)
+
+                        Text("Aplicatia salveaza cate un esantion de presiune la cel putin 1 ora, timp de maximum 7 zile.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 4))
-                    }
-                    .chartYAxisLabel("mmHg")
                     .padding()
+                } else {
+                    PressureTrendChart(samples: samples)
+                        .padding()
                 }
             }
             .navigationTitle("Trend presiune")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Back") {
                         dismiss()
                     }
                 }
             }
+        }
+    }
+}
+
+struct PressureTrendChart: View {
+    let samples: [PressureSample]
+
+    private var minimumPressure: Double {
+        samples.map(\.pressureMillimetersOfMercury).min() ?? 0
+    }
+
+    private var maximumPressure: Double {
+        samples.map(\.pressureMillimetersOfMercury).max() ?? 1
+    }
+
+    private var pressureRange: Double {
+        max(maximumPressure - minimumPressure, 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("\(maximumPressure.formatted(.number.precision(.fractionLength(1)))) mmHg")
+                Spacer()
+                Text("Ultimele 7 zile")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            GeometryReader { proxy in
+                let points = chartPoints(in: proxy.size)
+
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.secondary.opacity(0.25), lineWidth: 1)
+
+                    Path { path in
+                        guard let firstPoint = points.first else { return }
+                        path.move(to: firstPoint)
+                        for point in points.dropFirst() {
+                            path.addLine(to: point)
+                        }
+                    }
+                    .stroke(.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+                    ForEach(points.indices, id: \.self) { index in
+                        Circle()
+                            .fill(.blue)
+                            .frame(width: 7, height: 7)
+                            .position(points[index])
+                    }
+                }
+            }
+            .frame(minHeight: 240)
+
+            HStack {
+                Text("\(minimumPressure.formatted(.number.precision(.fractionLength(1)))) mmHg")
+                Spacer()
+                Text("\(samples.count) puncte")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private func chartPoints(in size: CGSize) -> [CGPoint] {
+        guard !samples.isEmpty else { return [] }
+
+        let sortedSamples = samples.sorted { $0.date < $1.date }
+        guard let firstDate = sortedSamples.first?.date,
+              let lastDate = sortedSamples.last?.date else {
+            return []
+        }
+
+        let dateRange = max(lastDate.timeIntervalSince(firstDate), 1)
+        let horizontalPadding = 12.0
+        let verticalPadding = 12.0
+        let drawingWidth = max(size.width - horizontalPadding * 2, 1)
+        let drawingHeight = max(size.height - verticalPadding * 2, 1)
+
+        return sortedSamples.map { sample in
+            let xProgress = sample.date.timeIntervalSince(firstDate) / dateRange
+            let yProgress = (sample.pressureMillimetersOfMercury - minimumPressure) / pressureRange
+
+            return CGPoint(
+                x: horizontalPadding + drawingWidth * xProgress,
+                y: verticalPadding + drawingHeight * (1 - yProgress)
+            )
         }
     }
 }
