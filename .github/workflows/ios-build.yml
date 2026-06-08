@@ -15,8 +15,23 @@ jobs:
 
       - name: Show Xcode version
         run: |
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
+          xcodebuild -version | tee xcode-version.log
+          xcrun --sdk iphoneos --show-sdk-version | tee -a xcode-version.log
+
+      - name: Clean Xcode caches
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/BarometerPressureApp-*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          rm -rf build/DerivedData
+          mkdir -p build/logs
+
+      - name: Reset checkout and clean Xcode caches
+        run: |
+          git reset --hard HEAD
+          git clean -ffdx
+          rm -rf ~/Library/Developer/Xcode/DerivedData/BarometerPressureApp-*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          rm -rf build/DerivedData
 
       - name: Install certificate and provisioning profile
         env:
@@ -46,7 +61,10 @@ jobs:
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/cf361b6c-f7a7-4c88-9fc6-6364e7927102.mobileprovision
 
           echo "Installed signing identities:"
-          security find-identity -v -p codesigning
+          security find-identity -v -p codesigning | tee build/logs/signing-identities.log
+
+          echo "Provisioning profile info:"
+          security cms -D -i "$PP_PATH" > build/logs/profile-decoded.plist || true
 
       - name: Archive app
         run: |
@@ -99,6 +117,8 @@ jobs:
           </plist>
           EOF
 
+          cp ExportOptions.plist build/logs/ExportOptions.plist
+
       - name: Export IPA
         run: |
           set -o pipefail
@@ -126,12 +146,14 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload IPA artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: BarometerPressureApp-IPA
           path: build/export/*.ipa
 
       - name: Upload IPA to App Store Connect
+        if: success()
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
