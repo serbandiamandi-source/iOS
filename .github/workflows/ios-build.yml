@@ -18,6 +18,23 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 
+      - name: Clean Xcode caches
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/BarometerPressureApp-*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+
+      - name: Verify source has no stale rain-chance code
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path("BarometerPressureApp/ContentView.swift").read_text()
+          stale_tokens = ["rainChance", "rainChanceText"]
+          found_tokens = [token for token in stale_tokens if token in source]
+          if found_tokens:
+              raise SystemExit(f"Stale rain-chance code remains in ContentView.swift: {', '.join(found_tokens)}")
+          PY
+
       - name: Install certificate and provisioning profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
