@@ -18,6 +18,12 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 
+      - name: Clean Xcode caches
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/BarometerPressureApp-*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          rm -rf build/DerivedData
+
       - name: Install certificate and provisioning profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -53,9 +59,11 @@ jobs:
             -scheme BarometerPressureApp \
             -configuration Release \
             -destination "generic/platform=iOS" \
+            -derivedDataPath build/DerivedData \
             -archivePath build/BarometerPressureApp.xcarchive \
             DEVELOPMENT_TEAM="DH52HKR3ND" \
             PRODUCT_BUNDLE_IDENTIFIER="com.serban.barometer" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="Barometer App Store Profile"
