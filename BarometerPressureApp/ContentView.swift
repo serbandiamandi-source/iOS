@@ -3,6 +3,10 @@ import CoreLocation
 import CoreMotion
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 struct ContentView: View {
     @StateObject private var viewModel = BarometricPressureViewModel()
     @State private var showsPressureTrend = false
@@ -182,25 +186,28 @@ final class BarometricPressureViewModel: NSObject, ObservableObject, CLLocationM
         guard !isUpdating else { return }
 
         guard CMAltimeter.isRelativeAltitudeAvailable() else {
-            statusText = "This iPhone does not report barometer data."
+            pressureText = "--.- mmHg"
+            rainChanceText = "Șanse de ploaie: --%"
+            rainChance = 0.5
             return
         }
 
         isUpdating = true
-        statusText = "Reading internal barometer…"
 
         altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
             guard let self else { return }
 
-            if let error {
+            if error != nil {
                 self.pressureText = "--.- mmHg"
-                self.statusText = "Barometer error: \(error.localizedDescription)"
+                self.rainChanceText = "Șanse de ploaie: --%"
+                self.rainChance = 0.5
                 return
             }
 
             guard let pressureKilopascals = data?.pressure.doubleValue else {
                 self.pressureText = "--.- mmHg"
-                self.statusText = "No pressure reading available yet."
+                self.rainChanceText = "Șanse de ploaie: --%"
+                self.rainChance = 0.5
                 return
             }
 
