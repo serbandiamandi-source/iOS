@@ -22,15 +22,27 @@ The project generates its app Info.plist at build time and includes the required
 
 Open `BarometerPressureApp.xcodeproj` in Xcode, select the `BarometerPressureApp` scheme, choose a signing team if Xcode asks for one, then run on your iPhone.
 
-For CI, build the shared scheme with a command like:
+For CI, the project disables code signing by default so GitHub Actions can build or archive without a provisioning profile. Build the shared scheme with a command like:
 
 ```sh
 xcodebuild \
   -project BarometerPressureApp.xcodeproj \
   -scheme BarometerPressureApp \
   -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO \
   build
 ```
+
+To create an unsigned CI archive, use:
+
+```sh
+xcodebuild \
+  -project BarometerPressureApp.xcodeproj \
+  -scheme BarometerPressureApp \
+  -destination 'generic/platform=iOS' \
+  -archivePath build/BarometerPressureApp.xcarchive \
+  archive
+```
+
+For a local install on your iPhone, open the target in Xcode and enable automatic signing with your personal development team. Exporting an installable IPA also requires a valid signing identity and provisioning profile; unsigned CI archives are useful for compile/archive validation only.
 
 The app uses `CMAltimeter` from CoreMotion. CoreMotion reports pressure in kilopascals, and `ContentView.swift` converts it to mmHg using `1 kPa = 7.50061683 mmHg`.
